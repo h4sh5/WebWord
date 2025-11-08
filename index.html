@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebWord - Advanced Document Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f0f0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Toolbar Styles */
+        .toolbar {
+            background: #2c3e50;
+            color: white;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .toolbar-section {
+            display: flex;
+            gap: 3px;
+            padding: 0 8px;
+            border-right: 1px solid #34495e;
+        }
+
+        .toolbar-section:last-child {
+            border-right: none;
+        }
+
+        .toolbar button {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: #4a5f7a;
+        }
+
+        .toolbar button.active {
+            background: #3498db;
+        }
+
+        .toolbar select {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .toolbar input[type="color"] {
+            width: 40px;
+            height: 32px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .toolbar input[type="number"] {
+            width: 60px;
+            padding: 6px;
+            border: none;
+            border-radius: 3px;
+            background: #34495e;
+            color: white;
+        }
+
+        /* Ruler */
+        .ruler {
+            background: #ecf0f1;
+            height: 25px;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            align-items: center;
+            padding: 0 50px;
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+
+        /* Editor Area */
+        .editor-container {
+            flex: 1;
+            overflow: auto;
+            background: #95a5a6;
+            padding: 20px;
+        }
+
+        .editor-wrapper {
+            background: white;
+            max-width: 850px;
+            margin: 0 auto;
+            min-height: 1100px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .editor {
+            padding: 96px;
+            min-height: 1100px;
+            outline: none;
+            line-height: 1.6;
+            font-size: 12pt;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        .editor:focus {
+            outline: none;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #2c3e50;
+            color: white;
+            padding: 5px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            border-top: 1px solid #34495e;
+        }
+
+        .status-item {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Modal Dialogs */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            margin-bottom: 15px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .modal input, .modal select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+        }
+
+        /* Table Styling */
+        table {
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        table td, table th {
+            border: 1px solid #bdc3c7;
+            padding: 8px;
+            min-width: 50px;
+        }
+
+        table th {
+            background: #ecf0f1;
+            font-weight: bold;
+        }
+
+        /* Find/Replace Highlight */
+        .highlight {
+            background-color: #f1c40f;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .toolbar {
+                padding: 5px;
+            }
+            
+            .toolbar-section {
+                padding: 0 5px;
+            }
+            
+            .editor {
+                padding: 48px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .toolbar, .status-bar, .ruler {
+                display: none;
+            }
+            
+            .editor-container {
+                background: white;
+                padding: 0;
+            }
+            
+            .editor-wrapper {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            .editor {
+                padding: 0;
+                min-height: auto;
+            }
+        }
+    </style>
+<!-- base -->
+</head>
+<body>
+    <div class="container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-section">
+                <button onclick="newDocument()" title="New Document">📄 New</button>
+                <button onclick="saveDocument()" title="Save Document">💾 Save</button>
+                <button onclick="loadDocument()" title="Load Document">📂 Open</button>
+                <button onclick="printDocument()" title="Print">🖨️ Print</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <select id="fontFamily" onchange="formatDoc('fontName', this.value)">
+                    <option value="Times New Roman" selected="selected">Times New Roman</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Calibri">Calibri</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Courier New">Courier New</option>
+                </select>
+                
+                <select id="fontSize" onchange="formatDoc('fontSize', this.value)">
+                    <option value="1">8pt</option>
+                    <option value="2">10pt</option>
+                    <option value="3" selected="selected">12pt</option>
+                    <option value="4">14pt</option>
+                    <option value="5">18pt</option>
+                    <option value="6">24pt</option>
+                    <option value="7">36pt</option>
+                </select>
+            </div>
+            
+            <div class="toolbar-section">
+                <button onclick="formatDoc('bold')" id="btnBold" title="Bold"><b>B</b></button>
+                <button onclick="formatDoc('italic')" id="btnItalic" title="Italic"><i>I</i></button>
+                <button onclick="formatDoc('underline')" id="btnUnderline" title="Underline"><u>U</u></button>
+                <button onclick="formatDoc('strikethrough')" id="btnStrike" title="Strikethrough"><s>S</s></button>
+                <button onclick="formatDoc('removeFormat')" title="Clear Formatting">🧹</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button onclick="formatDoc('justifyLeft')" title="Align Left">⬅️</button>
+                <button onclick="formatDoc('justifyCenter')" title="Center">⬆️</button>
+                <button onclick="formatDoc('justifyRight')" title="Align Right">➡️</button>
+                <button onclick="formatDoc('justifyFull')" title="Justify">↔️</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button onclick="formatDoc('insertUnorderedList')" title="Bullet List">• List</button>
+                <button onclick="formatDoc('insertOrderedList')" title="Numbered List">1. List</button>
+                <button onclick="indent()" title="Increase Indent">→|</button>
+                <button onclick="outdent()" title="Decrease Indent">|←</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <input type="color" id="textColor" onchange="formatDoc('foreColor', this.value)" title="Text Color" value="#000000">
+                <input type="color" id="bgColor" onchange="formatDoc('hiliteColor', this.value)" title="Highlight Color" value="#000000">
+            </div>
+            
+            <div class="toolbar-section">
+                <button onclick="insertLink()" title="Insert Link">🔗</button>
+                <button onclick="insertImage()" title="Insert Image">🖼️</button>
+                <button onclick="showTableDialog()" title="Insert Table">⊞</button>
+                <button onclick="showFindDialog()" title="Find &amp; Replace">🔍</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button onclick="undo()" title="Undo">↶</button>
+                <button onclick="redo()" title="Redo">↷</button>
+                <button onclick="showWordCount()" title="Word Count">📊</button>
+                <button onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+            </div>
+        </div>
+        
+        <!-- Ruler -->
+        <div class="ruler">
+            <span>Ruler: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 inches</span>
+        </div>
+        
+        <!-- Editor Container -->
+        <div class="editor-container" id="editorContainer">
+            <div class="editor-wrapper">
+                <div class="editor" id="editor" contenteditable="true" spellcheck="true">
+                    <h1>Welcome to WebWord</h1>
+                    <p>This is a feature-rich document editor with many capabilities similar to Microsoft Word. Start typing to create your document.</p>
+                    <p><strong>Features include:</strong></p>
+                    <ul><li>Rich text formatting (bold, italic, underline, etc.)</li><li>Font and size selection</li><li>Text alignment and indentation</li><li>Bulleted and numbered lists</li><li>Tables with full editing capabilities</li><li>Image insertion</li><li>Hyperlinks</li><li>Find and replace</li><li>Word count</li><li>Print and save functionality</li><li>Full-screen editing mode</li></ul>
+                    <p>Press <strong>Ctrl+B</strong> for bold, <strong>Ctrl+I</strong> for italic, <strong>Ctrl+U</strong> for underline.</p>
+                <br></div>
+            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span id="pageInfo">Page 1 of 1</span>
+                <span id="wordCount">Words: 73</span>
+                <span id="charCount">Chars: 517</span>
+            </div>
+            <div class="status-item">
+                <span id="zoomLevel">Zoom: 100%</span>
+                <input type="range" id="zoomSlider" min="50" max="200" value="100" onchange="setZoom(this.value)">
+                <span id="language">English (US)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Find/Replace Dialog -->
+    <div class="modal" id="findDialog">
+        <div class="modal-content">
+            <div class="modal-header">Find and Replace</div>
+            <div class="modal-body">
+                <input type="text" id="findText" placeholder="Find what...">
+                <input type="text" id="replaceText" placeholder="Replace with...">
+                <label><input type="checkbox" id="matchCase"> Match case</label>
+                <label><input type="checkbox" id="wholeWord"> Whole words only</label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeFindDialog()">Cancel</button>
+                <button class="btn-primary" onclick="findNext()">Find Next</button>
+                <button class="btn-primary" onclick="replaceAll()">Replace All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Dialog -->
+    <div class="modal" id="tableDialog">
+        <div class="modal-content">
+            <div class="modal-header">Insert Table</div>
+            <div class="modal-body">
+                <label>Rows: <input type="number" id="tableRows" value="3" min="1" max="20"></label>
+                <label>Columns: <input type="number" id="tableCols" value="3" min="1" max="20"></label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeTableDialog()">Cancel</button>
+                <button class="btn-primary" onclick="insertTable()">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word Count Dialog -->
+    <div class="modal" id="wordCountDialog">
+        <div class="modal-content">
+            <div class="modal-header">Document Statistics</div>
+            <div class="modal-body" id="statsContent">
+                <!-- Stats will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeWordCountDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let findRange = null;
+        let currentFindIndex = 0;
+        let findMatches = [];
+        let isFullscreen = false;
+
+        // Initialize editor
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('editor');
+            
+            // Update stats on input
+            editor.addEventListener('input', updateStats);
+            editor.addEventListener('keyup', updateStats);
+            editor.addEventListener('mouseup', updateStats);
+            
+            // Keyboard shortcuts
+            editor.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'b':
+                            e.preventDefault();
+                            formatDoc('bold');
+                            break;
+                        case 'i':
+                            e.preventDefault();
+                            formatDoc('italic');
+                            break;
+                        case 'u':
+                            e.preventDefault();
+                            formatDoc('underline');
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            saveDocument();
+                            break;
+                        case 'p':
+                            e.preventDefault();
+                            printDocument();
+                            break;
+                        case 'f':
+                            e.preventDefault();
+                            showFindDialog();
+                            break;
+                    }
+                }
+            });
+            
+            // Update toolbar state on selection change
+            document.addEventListener('selectionchange', function() {
+                updateToolbarState();
+            });
+            
+            updateStats();
+        });
+
+        // Core formatting function
+        function formatDoc(cmd, value = null) {
+            document.execCommand(cmd, false, value);
+            document.getElementById('editor').focus();
+            updateToolbarState();
+        }
+
+        // Update toolbar button states
+        function updateToolbarState() {
+            const buttons = ['bold', 'italic', 'underline', 'strikethrough'];
+            buttons.forEach(cmd => {
+                const btn = document.getElementById('btn' + cmd.charAt(0).toUpperCase() + cmd.slice(1));
+                if (btn) {
+                    btn.classList.toggle('active', document.queryCommandState(cmd));
+                }
+            });
+        }
+
+        // Indent/Outdent
+        function indent() {
+            formatDoc('indent');
+        }
+
+        function outdent() {
+            formatDoc('outdent');
+        }
+
+        // Undo/Redo
+        function undo() {
+            formatDoc('undo');
+        }
+
+        function redo() {
+            formatDoc('redo');
+        }
+
+        // Insert link
+        function insertLink() {
+            const url = prompt('Enter URL:');
+            if (url) {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.textContent = selection.toString() || url;
+                    link.target = '_blank';
+                    range.deleteContents();
+                    range.insertNode(link);
+                }
+            }
+        }
+
+        // Insert image
+        function insertImage() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = document.createElement('img');
+                        img.src = event.target.result;
+                        img.style.maxWidth = '100%';
+                        img.style.height = 'auto';
+                        document.execCommand('insertHTML', false, img.outerHTML);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        }
+
+        // Table functions
+        function showTableDialog() {
+            document.getElementById('tableDialog').style.display = 'flex';
+        }
+
+        function closeTableDialog() {
+            document.getElementById('tableDialog').style.display = 'none';
+        }
+
+        function insertTable() {
+            const rows = parseInt(document.getElementById('tableRows').value);
+            const cols = parseInt(document.getElementById('tableCols').value);
+            
+            let tableHTML = '<table>';
+            for (let i = 0; i < rows; i++) {
+                tableHTML += '<tr>';
+                for (let j = 0; j < cols; j++) {
+                    tableHTML += '<td>&nbsp;</td>';
+                }
+                tableHTML += '</tr>';
+            }
+            tableHTML += '</table>';
+            
+            formatDoc('insertHTML', tableHTML);
+            closeTableDialog();
+            
+            // Add table editing capabilities
+            setTimeout(() => {
+                const editor = document.getElementById('editor');
+                const tables = editor.getElementsByTagName('table');
+                const table = tables[tables.length - 1];
+                makeTableEditable(table);
+            }, 100);
+        }
+
+        function makeTableEditable(table) {
+            table.onclick = function(e) {
+                if (e.ctrlKey && e.shiftKey) {
+                    const cell = e.target;
+                    if (cell.tagName === 'TD' || cell.tagName === 'TH') {
+                        const action = prompt('Table action (add-row, add-col, del-row, del-col):');
+                        if (action === 'add-row') {
+                            const newRow = cell.parentNode.cloneNode(true);
+                            Array.from(newRow.cells).forEach(cell => cell.innerHTML = '&nbsp;');
+                            cell.parentNode.parentNode.appendChild(newRow);
+                        } else if (action === 'add-col') {
+                            Array.from(cell.parentNode.parentNode.rows).forEach(row => {
+                                const newCell = row.insertCell(cell.cellIndex + 1);
+                                newCell.innerHTML = '&nbsp;';
+                            });
+                        } else if (action === 'del-row') {
+                            cell.parentNode.parentNode.deleteRow(cell.parentNode.rowIndex);
+                        } else if (action === 'del-col') {
+                            Array.from(cell.parentNode.parentNode.rows).forEach(row => {
+                                row.deleteCell(cell.cellIndex);
+                            });
+                        }
+                    }
+                }
+            };
+        }
+
+        // Find and Replace
+        function showFindDialog() {
+            document.getElementById('findDialog').style.display = 'flex';
+            document.getElementById('findText').focus();
+        }
+
+        function closeFindDialog() {
+            document.getElementById('findDialog').style.display = 'none';
+            clearHighlights();
+        }
+
+        function findNext() {
+            const searchText = document.getElementById('findText').value;
+            if (!searchText) return;
+            
+            clearHighlights();
+            
+            const editor = document.getElementById('editor');
+            const walker = document.createTreeWalker(
+                editor,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            findMatches = [];
+            let node;
+            while (node = walker.nextNode()) {
+                const text = node.textContent;
+                const regex = new RegExp(searchText, 'gi');
+                let match;
+                while (match = regex.exec(text)) {
+                    findMatches.push({
+                        node: node,
+                        start: match.index,
+                        end: match.index + match[0].length
+                    });
+                }
+            }
+            
+            if (findMatches.length > 0) {
+                currentFindIndex = currentFindIndex >= findMatches.length ? 0 : currentFindIndex;
+                highlightMatch(findMatches[currentFindIndex]);
+                currentFindIndex++;
+            }
+        }
+
+        function highlightMatch(match) {
+            const range = document.createRange();
+            range.setStart(match.node, match.start);
+            range.setEnd(match.node, match.end);
+            
+            const span = document.createElement('span');
+            span.className = 'highlight';
+            range.surroundContents(span);
+            
+            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function clearHighlights() {
+            const editor = document.getElementById('editor');
+            const highlights = editor.querySelectorAll('.highlight');
+            highlights.forEach(span => {
+                const parent = span.parentNode;
+                parent.replaceChild(document.createTextNode(span.textContent), span);
+                parent.normalize();
+            });
+            findMatches = [];
+            currentFindIndex = 0;
+        }
+
+        function replaceAll() {
+            const searchText = document.getElementById('findText').value;
+            const replaceText = document.getElementById('replaceText').value;
+            
+            if (!searchText) return;
+            
+            const editor = document.getElementById('editor');
+            const content = editor.innerHTML;
+            const regex = new RegExp(searchText, 'gi');
+            editor.innerHTML = content.replace(regex, replaceText);
+            
+            closeFindDialog();
+            updateStats();
+        }
+
+        // Word Count
+        function showWordCount() {
+            const text = document.getElementById('editor').innerText;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+            const chars = text.length;
+            const charsNoSpaces = text.replace(/\s/g, '').length;
+            const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0).length;
+            
+            const stats = `
+                <p><strong>Document Statistics:</strong></p>
+                <p>Words: ${words}</p>
+                <p>Characters (with spaces): ${chars}</p>
+                <p>Characters (no spaces): ${charsNoSpaces}</p>
+                <p>Paragraphs: ${paragraphs}</p>
+            `;
+            
+            document.getElementById('statsContent').innerHTML = stats;
+            document.getElementById('wordCountDialog').style.display = 'flex';
+        }
+
+        function closeWordCountDialog() {
+            document.getElementById('wordCountDialog').style.display = 'none';
+        }
+
+        // Stats update
+        function updateStats() {
+            const text = document.getElementById('editor').innerText;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+            const chars = text.length;
+            
+            document.getElementById('wordCount').textContent = `Words: ${words}`;
+            document.getElementById('charCount').textContent = `Chars: ${chars}`;
+        }
+
+        // Zoom
+        function setZoom(value) {
+            const editorWrapper = document.querySelector('.editor-wrapper');
+            editorWrapper.style.transform = `scale(${value / 100})`;
+            editorWrapper.style.transformOrigin = 'top center';
+            document.getElementById('zoomLevel').textContent = `Zoom: ${value}%`;
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            const container = document.querySelector('.container');
+            if (!isFullscreen) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                }
+                isFullscreen = true;
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                isFullscreen = false;
+            }
+        }
+
+        // Document operations
+        function newDocument() {
+            if (confirm('Create new document? All unsaved changes will be lost.')) {
+                document.getElementById('editor').innerHTML = '<p></p>';
+                updateStats();
+            }
+        }
+
+        function saveDocument() {
+            const content = document.getElementById('editor').innerHTML;
+            const blob = new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Document</title></head><body>${content}</body></html>`], 
+                { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadDocument() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.html,.txt';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(event.target.result, 'text/html');
+                        const content = doc.body.innerHTML;
+                        document.getElementById('editor').innerHTML = content || '<p></p>';
+                        updateStats();
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function printDocument() {
+            window.print();
+        }
+
+        // Table editing context menu
+        document.addEventListener('contextmenu', function(e) {
+            const table = e.target.closest('table');
+            if (table) {
+                e.preventDefault();
+                const action = prompt('Table Options:\n1. Add Row\n2. Add Column\n3. Delete Row\n4. Delete Column\n5. Merge Cells\nEnter number:');
+                const cell = e.target.closest('td, th');
+                if (!cell) return;
+                
+                switch(action) {
+                    case '1':
+                        const newRow = cell.parentNode.cloneNode(true);
+                        Array.from(newRow.cells).forEach(c => c.innerHTML = '&nbsp;');
+                        cell.parentNode.parentNode.appendChild(newRow);
+                        break;
+                    case '2':
+                        Array.from(cell.parentNode.parentNode.rows).forEach(row => {
+                            const newCell = row.insertCell(cell.cellIndex + 1);
+                            newCell.innerHTML = '&nbsp;';
+                        });
+                        break;
+                    case '3':
+                        cell.parentNode.parentNode.deleteRow(cell.parentNode.rowIndex);
+                        break;
+                    case '4':
+                        Array.from(cell.parentNode.parentNode.rows).forEach(row => {
+                            row.deleteCell(cell.cellIndex);
+                        });
+                        break;
+                    case '5':
+                        if (cell.colSpan === 1) {
+                            cell.colSpan = 2;
+                            const nextCell = cell.nextElementSibling;
+                            if (nextCell) nextCell.remove();
+                        }
+                        break;
+                }
+            }
+        });
+
+        // Auto-save to localStorage
+        setInterval(() => {
+            const content = document.getElementById('editor').innerHTML;
+            localStorage.setItem('webword_autosave', content);
+        }, 30000); // Auto-save every 30 seconds
+
+        // Load auto-saved content on page load
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('webword_autosave');
+            if (saved) {
+                document.getElementById('editor').innerHTML = saved;
+                updateStats();
+            }
+        });
+    </script>
+
+</body></html>
